@@ -237,6 +237,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
         choices=[
             ("English", "en"),
             ("简体中文", "zh"),
+            ("日本語", "ja"),
         ],
         value="en",
         # label=_("Language"),
@@ -264,7 +265,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
     with Translate(
             os.path.join(root_dir, 'webui', 'translation.json'),
             lang_btn,
-            placeholder_langs=["en", "zh"],
+            placeholder_langs=["en", "zh", "ja"],
             persistant=
             False,  # True to save the language setting in the browser. Requires gradio >= 5.6.0
     ):
