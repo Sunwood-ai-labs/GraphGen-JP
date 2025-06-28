@@ -66,7 +66,13 @@ async def _construct_rephrasing_prompt(_process_nodes: list,
 
     entities_str = "\n".join([f"{index + 1}. {entity}" for index, entity in enumerate(entities)])
     relations_str = "\n".join([f"{index + 1}. {relation}" for index, relation in enumerate(relations)])
-    language = "Chinese" if detect_main_language(entities_str + relations_str) == "zh" else "English"
+    lang_code = detect_main_language(entities_str + relations_str)
+    if lang_code == "ja":
+        language = "Japanese"
+    elif lang_code == "zh":
+        language = "Chinese"
+    else:
+        language = "English"
 
     if add_context:
         original_ids = ([node['source_id'].split('<SEP>')[0] for node in _process_nodes] +
