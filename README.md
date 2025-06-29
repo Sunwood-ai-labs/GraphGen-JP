@@ -1,3 +1,9 @@
+<div align="center">
+
+[🇯🇵 日本語](README_ja.md) ｜ [🇬🇧 English](README.md)
+
+</div>
+
 <p align="center">
   <img src="resources/images/logo.png"/>
 </p>
