@@ -66,13 +66,26 @@ async def _construct_rephrasing_prompt(_process_nodes: list,
 
     entities_str = "\n".join([f"{index + 1}. {entity}" for index, entity in enumerate(entities)])
     relations_str = "\n".join([f"{index + 1}. {relation}" for index, relation in enumerate(relations)])
-    lang_code = detect_main_language(entities_str + relations_str)
-    if lang_code == "ja":
-        language = "Japanese"
-    elif lang_code == "zh":
-        language = "Chinese"
-    else:
-        language = "English"
+
+    # force_languageパラメータを追加
+    def get_prompt_language(entities_str, relations_str, force_language=None):
+        if force_language is not None:
+            return force_language
+        lang_code = detect_main_language(entities_str + relations_str)
+        if lang_code == "ja":
+            return "Japanese"
+        elif lang_code == "zh":
+            return "Chinese"
+        else:
+            return "English"
+
+    # force_languageを受け取れるようにする
+    import inspect
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    force_language = values.get('force_language', None)
+
+    language = get_prompt_language(entities_str, relations_str, force_language)
 
     if add_context:
         original_ids = ([node['source_id'].split('<SEP>')[0] for node in _process_nodes] +
@@ -146,7 +159,8 @@ async def traverse_graph_by_edge(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph
@@ -281,7 +295,8 @@ async def traverse_graph_atomically(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph atomicly
@@ -387,7 +402,8 @@ async def traverse_graph_for_multi_hop(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph for multi-hop
