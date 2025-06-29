@@ -17,7 +17,9 @@
     "Test Connection": "Test Connection",
     "Upload File": "Upload File",
     "Example Files": "Example Files",
-    "Run GraphGen": "Run GraphGen"
+    "Run GraphGen": "Run GraphGen",
+    "Output Language (QA Generation)": "Output Language (QA Generation)",
+    "You can specify the output language for QA data. If not specified, it will be automatically detected.": "You can specify the output language for QA data. If not specified, it will be automatically detected."
   },
   "zh": {
     "Title": "✨开箱即用的LLM训练数据生成框架✨",
@@ -37,26 +39,30 @@
     "Test Connection": "测试接口",
     "Upload File": "上传文件",
     "Example Files": "示例文件",
-    "Run GraphGen": "运行GraphGen"
+    "Run GraphGen": "运行GraphGen",
+    "Output Language (QA Generation)": "输出语言（QA生成）",
+    "You can specify the output language for QA data. If not specified, it will be automatically detected.": "你可以指定QA数据的输出语言，未指定时将自动检测。"
   },
   "ja": {
-    "Title": "Title",
+    "Title": "✨かんたんLLM学習データ生成フレームワーク✨",
     "\n\n": "\n\n",
     "### [GraphGen](https://github.com/open-sciencelab/GraphGen) ": "### [GraphGen](https://github.com/open-sciencelab/GraphGen) ",
-    "Intro": "Intro",
+    "Intro": "GraphGenは、知識グラフに基づく合成データ生成フレームワークです。知識集約型QAデータ生成の課題を解決します。\n\n農業・医療・海洋科学などのテキストチャンクをアップロードし、LLM APIキーを入力するだけで、**[LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)** や **[xtuner](https://github.com/InternLM/xtuner)** 用の学習データをオンラインで生成できます。処理完了後、ユーザー情報は自動的に削除されます。",
     "# ": "# ",
-    "Use Trainee Model": "Use Trainee Model",
-    "Synthesizer URL Info": "Synthesizer URL Info",
-    "Synthesizer Model Info": "Synthesizer Model Info",
-    "Trainee URL Info": "Trainee URL Info",
-    "Trainee Model Info": "Trainee Model Info",
-    "SiliconCloud Token for Trainee Model": "SiliconCloud Token for Trainee Model",
-    "Model Config": "Model Config",
-    "Generation Config": "Generation Config",
-    "SiliconCloud Token": "SiliconCloud Token",
-    "Test Connection": "Test Connection",
-    "Upload File": "Upload File",
-    "Example Files": "Example Files",
-    "Run GraphGen": "Run GraphGen"
+    "Use Trainee Model": "Traineeモデルを使って知識の抜けを検出（SiliconCloud利用時は無効推奨）",
+    "Synthesizer URL Info": "合成モデルAPIのベースURL（デフォルトはSiliconFlow）",
+    "Synthesizer Model Info": "知識グラフ構築・QA生成用モデル",
+    "Trainee URL Info": "TraineeモデルAPIのベースURL（デフォルトはSiliconFlow）",
+    "Trainee Model Info": "学習用モデル",
+    "SiliconCloud Token for Trainee Model": "Traineeモデル用SiliconCloud APIキー",
+    "Model Config": "モデル設定",
+    "Generation Config": "生成設定",
+    "SiliconCloud Token": "SiliconCloud APIキー",
+    "Test Connection": "接続テスト",
+    "Upload File": "ファイルをアップロード",
+    "Example Files": "サンプルファイル",
+    "Run GraphGen": "GraphGenを実行",
+    "Output Language (QA Generation)": "出力言語（QA生成用）",
+    "You can specify the output language for QA data. If not specified, it will be automatically detected.": "QAデータの出力言語を指定できます。未指定の場合は自動判定されます。"
   }
 }

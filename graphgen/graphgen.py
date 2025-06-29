@@ -221,25 +221,37 @@ class GraphGen:
         loop = create_event_loop()
         loop.run_until_complete(self.async_traverse())
 
-    async def async_traverse(self):
+    async def async_traverse(self, force_language: str = None):
         if self.traverse_strategy.qa_form == "atomic":
-            results = await traverse_graph_atomically(self.synthesizer_llm_client,
-                                                      self.tokenizer_instance,
-                                                      self.graph_storage,
-                                                      self.traverse_strategy,
-                                                      self.text_chunks_storage,
-                                                      self.progress_bar)
+            results = await traverse_graph_atomically(
+                self.synthesizer_llm_client,
+                self.tokenizer_instance,
+                self.graph_storage,
+                self.traverse_strategy,
+                self.text_chunks_storage,
+                self.progress_bar,
+                force_language=force_language
+            )
         elif self.traverse_strategy.qa_form == "multi_hop":
-            results = await traverse_graph_for_multi_hop(self.synthesizer_llm_client,
-                                                            self.tokenizer_instance,
-                                                            self.graph_storage,
-                                                            self.traverse_strategy,
-                                                            self.text_chunks_storage,
-                                                            self.progress_bar)
+            results = await traverse_graph_for_multi_hop(
+                self.synthesizer_llm_client,
+                self.tokenizer_instance,
+                self.graph_storage,
+                self.traverse_strategy,
+                self.text_chunks_storage,
+                self.progress_bar,
+                force_language=force_language
+            )
         elif self.traverse_strategy.qa_form == "aggregated":
-            results = await traverse_graph_by_edge(self.synthesizer_llm_client, self.tokenizer_instance,
-                                                   self.graph_storage, self.traverse_strategy, self.text_chunks_storage,
-                                                   self.progress_bar)
+            results = await traverse_graph_by_edge(
+                self.synthesizer_llm_client,
+                self.tokenizer_instance,
+                self.graph_storage,
+                self.traverse_strategy,
+                self.text_chunks_storage,
+                self.progress_bar,
+                force_language=force_language
+            )
         else:
             raise ValueError(f"Unknown qa_form: {self.traverse_strategy.qa_form}")
         await self.qa_storage.upsert(results)
