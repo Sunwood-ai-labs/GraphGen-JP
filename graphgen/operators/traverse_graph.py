@@ -207,7 +207,10 @@ async def traverse_graph_by_edge(
                 _process_batch[1],
             )
 
-            language = "Chinese" if detect_main_language(context) == "zh" else "English"
+            if force_language:
+                language = force_language
+            else:
+                language = "Chinese" if detect_main_language(context) == "zh" else "English"
             pre_length = sum(node['length'] for node in _process_batch[0]) \
                          + sum(edge[2]['length'] for edge in _process_batch[1])
 

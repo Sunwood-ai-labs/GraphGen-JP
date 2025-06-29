@@ -14,6 +14,18 @@ from base import GraphGenParams
 from test_api import test_api_connection
 from cache_utils import setup_workspace, cleanup_workspace
 from count_tokens import count_tokens
+import asyncio
+
+def create_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
 
 # pylint: disable=wrong-import-position
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -182,7 +194,8 @@ def run_graphgen(params, progress=gr.Progress()):
 
         # Traverse graph
         loop = create_event_loop()
-        loop.run_until_complete(graph_gen.async_traverse(force_language=params.force_language))
+        force_language = params.force_language or "Japanese"
+        loop.run_until_complete(graph_gen.async_traverse(force_language=force_language))
 
         # Save output
         output_data = graph_gen.qa_storage.data
@@ -247,7 +260,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
             ("简体中文", "zh"),
             ("日本語", "ja"),
         ],
-        value="en",
+        value="ja",
         # label=_("Language"),
         render=False,
         container=False,
@@ -261,7 +274,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
             ("日本語（Japanese）", "Japanese"),
             ("英語（English）", "English"),
         ],
-        value=None,
+        value="Japanese",
         label="出力言語（QA生成用）",
         info="QAデータの出力言語を指定できます。未指定の場合は自動判定されます。",
         interactive=True,
