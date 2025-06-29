@@ -29,3 +29,4 @@ class GraphGenParams:
     trainee_url: str
     trainee_api_key: str
     token_counter: Any
+    force_language: str = None  # "Japanese", "English", or None for auto

@@ -5,6 +5,8 @@ import tempfile
 
 import pandas as pd
 import gradio as gr
+from dotenv import load_dotenv
+import os
 
 from gradio_i18n import Translate, gettext as _
 
@@ -12,6 +14,18 @@ from base import GraphGenParams
 from test_api import test_api_connection
 from cache_utils import setup_workspace, cleanup_workspace
 from count_tokens import count_tokens
+import asyncio
+
+def create_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
 
 # pylint: disable=wrong-import-position
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,6 +35,10 @@ from graphgen.graphgen import GraphGen
 from graphgen.models import OpenAIModel, Tokenizer, TraverseStrategy
 from graphgen.models.llm.limitter import RPM, TPM
 from graphgen.utils import set_logger
+
+# .envはプロジェクトルート（root_dir/.env）を明示的に指定して読み込む
+print("root_dir:", root_dir)
+load_dotenv(dotenv_path=os.path.join(root_dir, ".env"))
 
 
 css = """
@@ -103,13 +121,14 @@ def run_graphgen(params, progress=gr.Progress()):
         "chunk_size": params.chunk_size,
     }
 
+    # .envは既にroot_dir/.envで読み込まれている
     env = {
-        "SYNTHESIZER_BASE_URL": params.synthesizer_url,
-        "SYNTHESIZER_MODEL": params.synthesizer_model,
-        "TRAINEE_BASE_URL": params.trainee_url,
-        "TRAINEE_MODEL": params.trainee_model,
-        "SYNTHESIZER_API_KEY": params.api_key,
-        "TRAINEE_API_KEY": params.trainee_api_key,
+        "SYNTHESIZER_BASE_URL": os.environ.get("SYNTHESIZER_BASE_URL", params.synthesizer_url),
+        "SYNTHESIZER_MODEL": os.environ.get("SYNTHESIZER_MODEL", params.synthesizer_model),
+        "TRAINEE_BASE_URL": os.environ.get("TRAINEE_BASE_URL", params.trainee_url),
+        "TRAINEE_MODEL": os.environ.get("TRAINEE_MODEL", params.trainee_model),
+        "SYNTHESIZER_API_KEY": os.environ.get("SYNTHESIZER_API_KEY", params.api_key),
+        "TRAINEE_API_KEY": os.environ.get("TRAINEE_API_KEY", params.trainee_api_key),
         "RPM": params.rpm,
         "TPM": params.tpm,
     }
@@ -174,7 +193,9 @@ def run_graphgen(params, progress=gr.Progress()):
             graph_gen.judge(skip=True)
 
         # Traverse graph
-        graph_gen.traverse()
+        loop = create_event_loop()
+        force_language = params.force_language or "Japanese"
+        loop.run_until_complete(graph_gen.async_traverse(force_language=force_language))
 
         # Save output
         output_data = graph_gen.qa_storage.data
@@ -239,11 +260,24 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
             ("简体中文", "zh"),
             ("日本語", "ja"),
         ],
-        value="en",
+        value="ja",
         # label=_("Language"),
         render=False,
         container=False,
         elem_classes=["center-row"],
+    )
+
+    # 出力言語選択用Dropdownを追加
+    output_lang_dropdown = gr.Dropdown(
+        choices=[
+            ("自動（Auto）", None),
+            ("日本語（Japanese）", "Japanese"),
+            ("英語（English）", "English"),
+        ],
+        value="Japanese",
+        label="出力言語（QA生成用）",
+        info="QAデータの出力言語を指定できます。未指定の場合は自動判定されます。",
+        interactive=True,
     )
 
     gr.HTML("""
@@ -277,44 +311,52 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
         )
 
         if_trainee_model = gr.Checkbox(label=_("Use Trainee Model"),
-                                       value=False,
-                                       interactive=True)
+                                        value=False,
+                                        interactive=True)
 
         with gr.Accordion(label=_("Model Config"), open=False):
-            synthesizer_url = gr.Textbox(label="Synthesizer URL",
-                                  value="https://api.siliconflow.cn/v1",
-                                  info=_("Synthesizer URL Info"),
-                                  interactive=True)
-            synthesizer_model = gr.Textbox(label="Synthesizer Model",
-                                           value="Qwen/Qwen2.5-7B-Instruct",
-                                           info=_("Synthesizer Model Info"),
-                                           interactive=True)
-            trainee_url = gr.Textbox(label="Trainee URL",
-                                        value="https://api.siliconflow.cn/v1",
-                                        info=_("Trainee URL Info"),
-                                        interactive=True,
-                                        visible=if_trainee_model.value is True)
+            synthesizer_url = gr.Textbox(
+                label="Synthesizer URL",
+                value=os.environ.get("SYNTHESIZER_BASE_URL", "https://api.siliconflow.cn/v1"),
+                info=_("Synthesizer URL Info"),
+                interactive=True
+            )
+            synthesizer_model = gr.Textbox(
+                label="Synthesizer Model",
+                value=os.environ.get("SYNTHESIZER_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
+                info=_("Synthesizer Model Info"),
+                interactive=True
+            )
+            trainee_url = gr.Textbox(
+                label="Trainee URL",
+                value=os.environ.get("TRAINEE_BASE_URL", "https://api.siliconflow.cn/v1"),
+                info=_("Trainee URL Info"),
+                interactive=True,
+                visible=if_trainee_model.value is True
+            )
             trainee_model = gr.Textbox(
                 label="Trainee Model",
-                value="Qwen/Qwen2.5-7B-Instruct",
+                value=os.environ.get("TRAINEE_MODEL", "Qwen/Qwen2.5-7B-Instruct"),
                 info=_("Trainee Model Info"),
                 interactive=True,
-                visible=if_trainee_model.value is True)
+                visible=if_trainee_model.value is True
+            )
             trainee_api_key = gr.Textbox(
-                    label=_("SiliconCloud Token for Trainee Model"),
-                    type="password",
-                    value="",
-                    info="https://cloud.siliconflow.cn/account/ak",
-                    visible=if_trainee_model.value is True)
+                label=_("SiliconCloud Token for Trainee Model"),
+                type="password",
+                value=os.environ.get("TRAINEE_API_KEY", ""),
+                info="https://cloud.siliconflow.cn/account/ak",
+                visible=if_trainee_model.value is True
+            )
 
 
         with gr.Accordion(label=_("Generation Config"), open=False):
             chunk_size = gr.Slider(label="Chunk Size",
-                                   minimum=256,
-                                   maximum=4096,
-                                   value=512,
-                                   step=256,
-                                   interactive=True)
+                                    minimum=256,
+                                    maximum=4096,
+                                    value=512,
+                                    step=256,
+                                    interactive=True)
             tokenizer = gr.Textbox(label="Tokenizer",
                                    value="cl100k_base",
                                    interactive=True)
@@ -378,7 +420,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                 api_key = gr.Textbox(
                     label=_("SiliconCloud Token"),
                     type="password",
-                    value="",
+                    value=os.environ.get("SYNTHESIZER_API_KEY", ""),
                     info="https://cloud.siliconflow.cn/account/ak")
             with gr.Column(scale=1):
                 test_connection_btn = gr.Button(_("Test Connection"))
@@ -504,13 +546,15 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                 trainee_url=args[20],
                 trainee_api_key=args[21],
                 token_counter=args[22],
+                force_language=args[23],  # 追加: 出力言語Dropdown
             )),
             inputs=[
                 if_trainee_model, upload_file, tokenizer, qa_form,
                 bidirectional, expand_method, max_extra_edges, max_tokens,
                 max_depth, edge_sampling, isolated_node_strategy,
                 loss_strategy, synthesizer_url, synthesizer_model, trainee_model,
-                api_key, chunk_size, rpm, tpm, quiz_samples, trainee_url, trainee_api_key, token_counter
+                api_key, chunk_size, rpm, tpm, quiz_samples, trainee_url, trainee_api_key, token_counter,
+                output_lang_dropdown  # 追加
             ],
             outputs=[output, token_counter],
         )

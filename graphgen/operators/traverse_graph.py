@@ -54,7 +54,8 @@ async def _pre_tokenize(graph_storage: NetworkXStorage,
 async def _construct_rephrasing_prompt(_process_nodes: list,
                                        _process_edges: list,
                                        text_chunks_storage: JsonKVStorage,
-                                       add_context: bool = False
+                                       add_context: bool = False,
+                                       force_language: str = None
                                        ) -> str:
     entities = [
         f"{_process_node['node_id']}: {_process_node['description']}" for _process_node in _process_nodes
@@ -66,13 +67,26 @@ async def _construct_rephrasing_prompt(_process_nodes: list,
 
     entities_str = "\n".join([f"{index + 1}. {entity}" for index, entity in enumerate(entities)])
     relations_str = "\n".join([f"{index + 1}. {relation}" for index, relation in enumerate(relations)])
-    lang_code = detect_main_language(entities_str + relations_str)
-    if lang_code == "ja":
-        language = "Japanese"
-    elif lang_code == "zh":
-        language = "Chinese"
-    else:
-        language = "English"
+
+    # force_languageパラメータを追加
+    def get_prompt_language(entities_str, relations_str, force_language=None):
+        if force_language is not None:
+            return force_language
+        lang_code = detect_main_language(entities_str + relations_str)
+        if lang_code == "ja":
+            return "Japanese"
+        elif lang_code == "zh":
+            return "Chinese"
+        else:
+            return "English"
+
+    # force_languageを受け取れるようにする
+    import inspect
+    frame = inspect.currentframe()
+    args, _, _, values = inspect.getargvalues(frame)
+    force_language = values.get('force_language', None)
+
+    language = get_prompt_language(entities_str, relations_str, force_language)
 
     if add_context:
         original_ids = ([node['source_id'].split('<SEP>')[0] for node in _process_nodes] +
@@ -146,7 +160,8 @@ async def traverse_graph_by_edge(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph
@@ -166,14 +181,19 @@ async def traverse_graph_by_edge(
     async def _process_nodes_and_edges(
             _process_nodes: list,
             _process_edges: list,
+            force_language: str = None
     ) -> str:
+        logger.debug(f"開始: _process_nodes_and_edges nodes={len(_process_nodes)} edges={len(_process_edges)} force_language={force_language}")
         prompt = await _construct_rephrasing_prompt(
             _process_nodes,
             _process_edges,
             text_chunks_storage,
-            add_context = False
+            add_context = False,
+            force_language=force_language
         )
+        logger.debug(f"生成プロンプト: {prompt[:200]}...")  # 長い場合は先頭だけ
         context = await llm_client.generate_answer(prompt)
+        logger.debug(f"生成context: {context[:200]}...")
 
         # post-process the context
         if context.startswith("Rephrased Text:"):
@@ -188,63 +208,76 @@ async def traverse_graph_by_edge(
         question_type: str = "single"
     ) -> dict:
         async with semaphore:
-            context = await _process_nodes_and_edges(
-                _process_batch[0],
-                _process_batch[1],
-            )
+            logger.info(f"バッチ処理開始: nodes={len(_process_batch[0])} edges={len(_process_batch[1])} question_type={question_type}")
+            try:
+                context = await _process_nodes_and_edges(
+                    _process_batch[0],
+                    _process_batch[1],
+                    force_language=force_language
+                )
 
-            language = "Chinese" if detect_main_language(context) == "zh" else "English"
-            pre_length = sum(node['length'] for node in _process_batch[0]) \
-                         + sum(edge[2]['length'] for edge in _process_batch[1])
+                # 言語をforce_languageで強制
+                language = force_language if force_language else ("Chinese" if detect_main_language(context) == "zh" else "English")
+                pre_length = sum(node['length'] for node in _process_batch[0]) \
+                             + sum(edge[2]['length'] for edge in _process_batch[1])
 
-            if question_type == "single":
-                question = await llm_client.generate_answer(
-                    QUESTION_GENERATION_PROMPT[language]['SINGLE_TEMPLATE'].format(
-                        answer=context
+                logger.debug(f"生成context: {context[:200]}... 言語: {language} pre_length: {pre_length}")
+
+                if question_type == "single":
+                    question = await llm_client.generate_answer(
+                        QUESTION_GENERATION_PROMPT[language]['SINGLE_TEMPLATE'].format(
+                            answer=context
+                        )
+                    )
+                    logger.debug(f"生成question: {question[:200]}...")
+
+                    if question.startswith("Question:"):
+                        question = question[len("Question:"):].strip()
+                    elif question.startswith("问题："):
+                        question = question[len("问题："):].strip()
+                    elif question.startswith("質問："):
+                        question = question[len("質問："):].strip()
+
+                    logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
+                    logger.info("Pre-length: %s", pre_length)
+                    logger.info("Question: %s", question)
+                    logger.info("Answer: %s", context)
+
+                    return {
+                        compute_content_hash(context): {
+                            "question": question,
+                            "answer": context,
+                            "loss": get_average_loss(_process_batch, traverse_strategy.loss_strategy)
+                        }
+                    }
+
+                content = await llm_client.generate_answer(
+                    QUESTION_GENERATION_PROMPT[language]['MULTI_TEMPLATE'].format(
+                        doc=context
                     )
                 )
-                if question.startswith("Question:"):
-                    question = question[len("Question:"):].strip()
-                elif question.startswith("问题："):
-                    question = question[len("问题："):].strip()
+                logger.debug(f"生成multi content: {content[:200]}...")
+                qas = _post_process_synthetic_data(content)
 
+                if len(qas) == 0:
+                    logger.error(f"Error occurred while processing batch, question or answer is None. content={content}")
+                    return {}
+
+                final_results = {}
                 logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
                 logger.info("Pre-length: %s", pre_length)
-                logger.info("Question: %s", question)
-                logger.info("Answer: %s", context)
-
-                return {
-                    compute_content_hash(context): {
-                        "question": question,
-                        "answer": context,
+                for qa in qas:
+                    logger.info("Question: %s", qa['question'])
+                    logger.info("Answer: %s", qa['answer'])
+                    final_results[compute_content_hash(qa['question'])] = {
+                        "question": qa['question'],
+                        "answer": qa['answer'],
                         "loss": get_average_loss(_process_batch, traverse_strategy.loss_strategy)
                     }
-                }
-
-            content = await llm_client.generate_answer(
-                QUESTION_GENERATION_PROMPT[language]['MULTI_TEMPLATE'].format(
-                    doc=context
-                )
-            )
-            qas = _post_process_synthetic_data(content)
-
-            if len(qas) == 0:
-                print(content)
-                logger.error("Error occurred while processing batch, question or answer is None")
+                return final_results
+            except Exception as e:
+                logger.exception(f"例外発生: バッチ処理中にエラー: {e}")
                 return {}
-
-            final_results = {}
-            logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
-            logger.info("Pre-length: %s", pre_length)
-            for qa in qas:
-                logger.info("Question: %s", qa['question'])
-                logger.info("Answer: %s", qa['answer'])
-                final_results[compute_content_hash(qa['question'])] = {
-                    "question": qa['question'],
-                    "answer": qa['answer'],
-                    "loss": get_average_loss(_process_batch, traverse_strategy.loss_strategy)
-                }
-            return final_results
 
     results = {}
     edges = list(await graph_storage.get_all_edges())
@@ -281,7 +314,8 @@ async def traverse_graph_atomically(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph atomicly
@@ -387,7 +421,8 @@ async def traverse_graph_for_multi_hop(
     traverse_strategy: TraverseStrategy,
     text_chunks_storage: JsonKVStorage,
     progress_bar: gr.Progress = None,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ) -> dict:
     """
     Traverse the graph for multi-hop
