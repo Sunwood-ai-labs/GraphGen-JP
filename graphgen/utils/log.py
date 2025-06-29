@@ -1,30 +1,14 @@
-import logging
+from loguru import logger
+import sys
 
-logger = logging.getLogger("graphgen")
-
-def set_logger(log_file: str, log_level: int = logging.INFO, if_stream: bool = True):
-    logger.setLevel(log_level)
-
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
-    file_handler = logging.FileHandler(log_file, mode='w')
-    file_handler.setLevel(log_level)
-    file_handler.setFormatter(formatter)
-
-    stream_handler = None
-
+def set_logger(log_file: str, log_level: int = "INFO", if_stream: bool = True):
+    # Remove all existing handlers
+    logger.remove()
+    # Add file handler
+    logger.add(log_file, level=log_level, encoding="utf-8", enqueue=True, backtrace=True, diagnose=True)
+    # Add console handler if needed
     if if_stream:
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(log_level)
-        stream_handler.setFormatter(formatter)
-
-    if not logger.handlers:
-        logger.addHandler(file_handler)
-        if if_stream and stream_handler:
-            logger.addHandler(stream_handler)
-
+        logger.add(sys.stderr, level=log_level, enqueue=True, backtrace=True, diagnose=True)
 
 def parse_log(log_file: str):
     with open(log_file, "r", encoding='utf-8') as f:
