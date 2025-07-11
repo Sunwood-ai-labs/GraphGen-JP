@@ -38,7 +38,7 @@ from graphgen.utils import set_logger
 
 # .envはプロジェクトルート（root_dir/.env）を明示的に指定して読み込む
 print("root_dir:", root_dir)
-load_dotenv(dotenv_path=os.path.join(root_dir, ".env"))
+load_dotenv(dotenv_path=os.path.join(root_dir, ".env"), override=True)
 
 
 css = """
@@ -50,13 +50,14 @@ css = """
 """
 
 
-def init_graph_gen(config: dict, env: dict) -> GraphGen:
+def init_graph_gen(config: dict, env: dict, force_language: str = None) -> GraphGen:
     # Set up working directory
     log_file, working_dir = setup_workspace(os.path.join(root_dir, "cache"))
 
     set_logger(log_file, if_stream=False)
     graph_gen = GraphGen(
-        working_dir=working_dir
+        working_dir=working_dir,
+        force_language=force_language
     )
 
     # Set up LLM clients
@@ -141,7 +142,7 @@ def run_graphgen(params, progress=gr.Progress()):
                             env["TRAINEE_API_KEY"], env["TRAINEE_MODEL"])
 
     # Initialize GraphGen
-    graph_gen = init_graph_gen(config, env)
+    graph_gen = init_graph_gen(config, env, getattr(params, "force_language", None))
     graph_gen.clear()
 
     graph_gen.progress_bar = progress
@@ -248,7 +249,7 @@ def run_graphgen(params, progress=gr.Progress()):
 with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                css=css) as demo):
     # Header
-    gr.Image(value=os.path.join(root_dir, 'resources', 'images', 'logo.png'),
+    gr.Image(value=os.path.join(root_dir, 'resources', 'images', 'logo-mini.png'),
              label="GraphGen Banner",
              elem_id="banner",
              interactive=False,

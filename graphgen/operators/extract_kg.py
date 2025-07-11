@@ -21,7 +21,8 @@ async def extract_kg(
         tokenizer_instance: Tokenizer,
         chunks: List[Chunk],
         progress_bar: gr.Progress = None,
-        max_concurrent: int = 1000
+        max_concurrent: int = 1,
+        force_language: str = None
 ):
     """
     :param llm_client: Synthesizer LLM model to extract entities and relationships
@@ -39,14 +40,34 @@ async def extract_kg(
         async with semaphore:
             chunk_id = chunk.id
             content = chunk.content
-            if detect_if_chinese(content):
-                language = "Chinese"
+
+            # 言語判定ロジック: force_language優先、なければ自動判定
+            if force_language:
+                language = force_language
             else:
-                language = "English"
+                from graphgen.utils import detect_main_language
+                lang_code = detect_main_language(content)
+                if lang_code == "zh":
+                    language = "Chinese"
+                elif lang_code == "ja":
+                    language = "Japanese"
+                else:
+                    language = "English"
             KG_EXTRACTION_PROMPT["FORMAT"]["language"] = language
 
+            # ===== エンティティタイプの定義（言語ごとに変更可能） =====
+            if language == "Japanese":
+                entity_types = ["人物", "組織", "場所", "イベント", "製品", "技術", "コンセプト"]
+            elif language == "Chinese":
+                entity_types = ["人物", "组织", "地点", "事件", "产品", "技术", "概念"]
+            else:  # English
+                entity_types = ["PERSON", "ORGANIZATION", "LOCATION", "EVENT", "PRODUCT", "TECHNOLOGY", "CONCEPT"]
+
+            # ===== プロンプト生成時に entity_types を渡す =====
             hint_prompt = KG_EXTRACTION_PROMPT[language]["TEMPLATE"].format(
-                **KG_EXTRACTION_PROMPT["FORMAT"], input_text=content
+                entity_types=", ".join(entity_types),
+                **KG_EXTRACTION_PROMPT["FORMAT"],
+                input_text=content
             )
 
             final_result = await llm_client.generate_answer(hint_prompt)
@@ -126,7 +147,7 @@ async def extract_kg(
         for k, v in e.items():
             edges[tuple(sorted(k))].extend(v)
 
-    await merge_nodes(nodes, kg_instance, llm_client, tokenizer_instance)
-    await merge_edges(edges, kg_instance, llm_client, tokenizer_instance)
+    await merge_nodes(nodes, kg_instance, llm_client, tokenizer_instance, force_language=force_language)
+    await merge_edges(edges, kg_instance, llm_client, tokenizer_instance, force_language=force_language)
 
     return kg_instance
