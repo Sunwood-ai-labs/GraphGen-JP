@@ -20,15 +20,34 @@ def split_string_by_multi_markers(content: str, markers: list[str]) -> list[str]
 
 # Refer the utils functions of the official GraphRAG implementation:
 # https://github.com/microsoft/graphrag
-def clean_str(input: Any) -> str:
-    """Clean an input string by removing HTML escapes, control characters, and other unwanted characters."""
-    # If we get non-string input, just give it back
-    if not isinstance(input, str):
-        return input
+def clean_str(input_str: Any) -> str:
+    """
+    LLMからの出力に含まれがちな不要な文字を、より強力にクリーニングする関数。
+    """
+    if not isinstance(input_str, str):
+        return input_str
 
-    result = html.unescape(input.strip())
-    # https://stackoverflow.com/questions/4324790/removing-control-characters-from-a-string-in-python
-    return re.sub(r"[\x00-\x1f\x7f-\x9f]", "", result)
+    text = input_str
+
+    # 1. HTMLエスケープをデコード (例: " -> ")
+    text = html.unescape(text)
+
+    # 2. 前後の空白文字（スペース、改行など）を除去
+    text = text.strip()
+
+    # 3. 周囲を囲むあらゆる種類の引用符（半角、全角、鉤括弧）を再帰的に除去
+    # 例: 「“‘テキスト’”」 -> “‘テキスト’” -> ‘テキスト’ -> テキスト
+    # \u300c と \u300d は 「」
+    quote_chars = "\"\'“‘”’\u300c\u300d"
+    while len(text) > 1 and text[0] in quote_chars and text[-1] in quote_chars:
+        text = text[1:-1].strip()
+
+    # 4. 制御文字を除去
+    text = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", text)
+
+    # 重要： .upper() は日本語などの多言語対応の妨げになるため削除。
+    # 大文字化が必要な場合は、この関数の呼び出し元で制御する。
+    return text
 
 async def handle_single_entity_extraction(
     record_attributes: list[str],
