@@ -177,3 +177,5 @@ cache
 *.pyc
 *.html
 .gradio
+scripts/sample/orin-mini-alpaca.jsonl
+scripts/sample/orin-mini.jsonl

@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    container_name: graphgen-app
+    working_dir: /app
+    command: python webui/app.py
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - SYNTHESIZER_MODEL
+      - SYNTHESIZER_BASE_URL
+      - SYNTHESIZER_API_KEY
+      - TRAINEE_MODEL
+      - TRAINEE_BASE_URL
+      - TRAINEE_API_KEY
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
