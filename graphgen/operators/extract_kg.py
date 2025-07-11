@@ -71,7 +71,9 @@ async def extract_kg(
             )
 
             final_result = await llm_client.generate_answer(hint_prompt)
-            logger.info('First result: {}', final_result)
+            # LLMの応答に含まれる全角クォーテーションを半角に正規化
+            final_result = final_result.replace('“', '"').replace('”', '"')
+            logger.info('First result (normalized): {}', final_result)
 
             history = pack_history_conversations(hint_prompt, final_result)
             for loop_index in range(max_loop):
@@ -87,7 +89,9 @@ async def extract_kg(
                     text=KG_EXTRACTION_PROMPT[language]["CONTINUE"],
                     history=history
                 )
-                logger.info('Loop {} glean: {}', loop_index, glean_result)
+                # ループ内で得られた追加結果も正規化
+                glean_result = glean_result.replace('“', '"').replace('”', '"')
+                logger.info('Loop {} glean (normalized): {}', loop_index, glean_result)
 
                 history += pack_history_conversations(KG_EXTRACTION_PROMPT[language]["CONTINUE"], glean_result)
                 final_result += glean_result

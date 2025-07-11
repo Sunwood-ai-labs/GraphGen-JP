@@ -69,7 +69,19 @@ async def judge_statement( # pylint: disable=too-many-statements
                     logger.debug("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
 
                     if not judgement_response:
-                         raise ValueError("LLM returned an empty response.")
+                        logger.warning(
+                            "LLM returned no valid tokens for relation '{}' -> '{}'. Prompt: '{}'. Skipping this rephrase.",
+                            source_id, target_id, prompt
+                        )
+                        continue  # この言い換え文の評価をスキップして次のループへ
+
+                    if not judgement_response[0].top_candidates:
+                        logger.warning(
+                            "LLM response for relation '{}' -> '{}' has no top_candidates. Skipping this rephrase.",
+                            source_id, target_id
+                        )
+                        continue  # この言い換え文の評価をスキップ
+
                     judgements.append(judgement_response[0].top_candidates)
 
                 logger.debug("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
@@ -148,7 +160,19 @@ async def judge_statement( # pylint: disable=too-many-statements
                     logger.debug("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
                     
                     if not judgement_response:
-                         raise ValueError("LLM returned an empty response.")
+                        logger.warning(
+                            "LLM returned no valid tokens for entity '{}'. Prompt: '{}'. Skipping this rephrase.",
+                            node_id, prompt
+                        )
+                        continue
+
+                    if not judgement_response[0].top_candidates:
+                        logger.warning(
+                            "LLM response for entity '{}' has no top_candidates. Skipping this rephrase.",
+                            node_id
+                        )
+                        continue
+
                     judgements.append(judgement_response[0].top_candidates)
 
                 logger.debug("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
