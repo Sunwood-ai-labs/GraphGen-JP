@@ -242,7 +242,8 @@ def run_graphgen(params, progress=gr.Progress()):
 
     finally:
         # Clean up workspace
-        cleanup_workspace(graph_gen.working_dir)
+        # cleanup_workspace(graph_gen.working_dir)
+        pass
 
 with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                css=css) as demo):
@@ -559,6 +560,12 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
             outputs=[output, token_counter],
         )
 
+import argparse  # 追加
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--share", action="store_true", help="Gradioの外部公開（share=True）")
+    args = parser.parse_args()
+
     demo.queue(api_open=False, default_concurrency_limit=2)
-    demo.launch(server_name='0.0.0.0')
+    demo.launch(server_name='0.0.0.0', share=args.share)
