@@ -47,6 +47,9 @@ class GraphGen:
     trainee_llm_client: OpenAIModel = None
     tokenizer_instance: Tokenizer = None
 
+    # 言語設定（UIから受け取る）
+    force_language: str = None
+
     # web search
     if_web_search: bool = False
     wiki_client: WikiSearch = field(default_factory=WikiSearch)
@@ -153,7 +156,6 @@ class GraphGen:
 
     async def async_insert(self, data: Union[List[list], List[dict]], data_type: str):
         """
-
         insert chunks into the graph
         """
 
@@ -171,6 +173,7 @@ class GraphGen:
             tokenizer_instance=self.tokenizer_instance,
             chunks=[Chunk(id=k, content=v['content']) for k, v in inserting_chunks.items()],
             progress_bar = self.progress_bar,
+            force_language=self.force_language,  # 追加
         )
         if not _add_entities_and_relations:
             logger.warning("No entities or relations extracted")
