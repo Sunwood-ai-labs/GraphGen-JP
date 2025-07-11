@@ -307,13 +307,13 @@ async def get_batches_with_strategy( # pylint: disable=too-many-branches
 
         processing_batches.append((_process_nodes, _process_edges))
 
-    logger.info("Processing batches: %d", len(processing_batches))
+    logger.info("Processing batches: {}", len(processing_batches))
 
     # isolate nodes
     isolated_node_strategy = traverse_strategy.isolated_node_strategy
     if isolated_node_strategy == "add":
         processing_batches = await _add_isolated_nodes(nodes, processing_batches, graph_storage)
-        logger.info("Processing batches after adding isolated nodes: %d", len(processing_batches))
+        logger.info("Processing batches after adding isolated nodes: {}", len(processing_batches))
 
     return processing_batches
 

@@ -50,7 +50,7 @@ async def _handle_kg_summary(
         **KG_SUMMARIZATION_PROMPT["FORMAT"]
     )
     new_description = await llm_client.generate_answer(prompt)
-    logger.info("Entity or relation %s summary: %s", entity_or_relation_name, new_description)
+    logger.info("Entity or relation {} summary: {}", entity_or_relation_name, new_description)
     return new_description
 
 
@@ -134,7 +134,7 @@ async def merge_nodes(
         try:
             entities_data.append(await result)
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while inserting entities into storage: %s", e)
+            logger.error("Error occurred while inserting entities into storage: {}", e)
 
 
 async def merge_edges(
@@ -221,4 +221,4 @@ async def merge_edges(
         try:
             relationships_data.append(await result)
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while inserting relationships into storage: %s", e)
+            logger.error("Error occurred while inserting relationships into storage: {}", e)
