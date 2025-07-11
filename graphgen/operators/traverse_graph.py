@@ -238,10 +238,10 @@ async def traverse_graph_by_edge(
                     elif question.startswith("質問："):
                         question = question[len("質問："):].strip()
 
-                    logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
-                    logger.info("Pre-length: %s", pre_length)
-                    logger.info("Question: %s", question)
-                    logger.info("Answer: %s", context)
+                    logger.info("{} nodes and {} edges processed", len(_process_batch[0]), len(_process_batch[1]))
+                    logger.info("Pre-length: {}", pre_length)
+                    logger.info("Question: {}", question)
+                    logger.info("Answer: {}", context)
 
                     return {
                         compute_content_hash(context): {
@@ -264,11 +264,11 @@ async def traverse_graph_by_edge(
                     return {}
 
                 final_results = {}
-                logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
-                logger.info("Pre-length: %s", pre_length)
+                logger.info("{} nodes and {} edges processed", len(_process_batch[0]), len(_process_batch[1]))
+                logger.info("Pre-length: {}", pre_length)
                 for qa in qas:
-                    logger.info("Question: %s", qa['question'])
-                    logger.info("Answer: %s", qa['answer'])
+                    logger.info("Question: {}", qa['question'])
+                    logger.info("Answer: {}", qa['answer'])
                     final_results[compute_content_hash(qa['question'])] = {
                         "question": qa['question'],
                         "answer": qa['answer'],
@@ -302,7 +302,7 @@ async def traverse_graph_by_edge(
             if progress_bar is not None and len(results) == len(processing_batches):
                 progress_bar(1, desc="[4/4]Generating QAs")
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while generating QA: %s", e)
+            logger.error("Error occurred while generating QA: {}", e)
 
     return results
 
@@ -364,8 +364,8 @@ async def traverse_graph_atomically(
                 question = question.strip("\"")
                 answer = answer.strip("\"")
 
-                logger.info("Question: %s", question)
-                logger.info("Answer: %s", answer)
+                logger.info("Question: {}", question)
+                logger.info("Answer: {}", answer)
                 return {
                     compute_content_hash(question): {
                         "question": question,
@@ -374,7 +374,7 @@ async def traverse_graph_atomically(
                     }
                 }
             except Exception as e: # pylint: disable=broad-except
-                logger.error("Error occurred while generating question: %s", e)
+                logger.error("Error occurred while generating question: {}", e)
                 return {}
 
     results = {}
@@ -411,7 +411,7 @@ async def traverse_graph_atomically(
             if progress_bar is not None and len(results) == len(tasks):
                 progress_bar(1, desc="[4/4]Generating QAs")
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while generating QA: %s", e)
+            logger.error("Error occurred while generating QA: {}", e)
     return results
 
 async def traverse_graph_for_multi_hop(

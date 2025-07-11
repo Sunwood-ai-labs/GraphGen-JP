@@ -71,7 +71,7 @@ async def extract_kg(
             )
 
             final_result = await llm_client.generate_answer(hint_prompt)
-            logger.info('First result: %s', final_result)
+            logger.info('First result: {}', final_result)
 
             history = pack_history_conversations(hint_prompt, final_result)
             for loop_index in range(max_loop):
@@ -87,7 +87,7 @@ async def extract_kg(
                     text=KG_EXTRACTION_PROMPT[language]["CONTINUE"],
                     history=history
                 )
-                logger.info('Loop %s glean: %s', loop_index, glean_result)
+                logger.info('Loop {} glean: {}', loop_index, glean_result)
 
                 history += pack_history_conversations(KG_EXTRACTION_PROMPT[language]["CONTINUE"], glean_result)
                 final_result += glean_result

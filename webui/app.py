@@ -200,13 +200,24 @@ def run_graphgen(params, progress=gr.Progress()):
 
         # Save output
         output_data = graph_gen.qa_storage.data
-        with tempfile.NamedTemporaryFile(
-                mode="w",
-                suffix=".jsonl",
-                delete=False,
-                encoding="utf-8") as tmpfile:
-            json.dump(output_data, tmpfile, ensure_ascii=False)
-            output_file = tmpfile.name
+
+        # 標準形式: cache/タイムスタンプ/output.jsonl
+        output_file = os.path.join(graph_gen.working_dir, "output.jsonl")
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(output_data, f, ensure_ascii=False)
+
+        # Alpaca形式: cache/タイムスタンプ/output-alpaca.jsonl
+        alpaca_output_file = os.path.join(graph_gen.working_dir, "output-alpaca.jsonl")
+        with open(alpaca_output_file, "w", encoding="utf-8") as f:
+            for item in output_data.values():
+                question = item.get("question", "").replace("东方", "東方")
+                answer = item.get("answer", "").replace("东方", "東方")
+                alpaca_obj = {
+                    "instruction": question,
+                    "input": "",
+                    "output": answer
+                }
+                f.write(json.dumps(alpaca_obj, ensure_ascii=False) + "\n")
 
         synthesizer_tokens = sum_tokens(graph_gen.synthesizer_llm_client)
         trainee_tokens = sum_tokens(graph_gen.trainee_llm_client) if config['if_trainee_model'] else 0
@@ -230,7 +241,8 @@ def run_graphgen(params, progress=gr.Progress()):
         except Exception as e:
             raise gr.Error(f"DataFrame operation error: {str(e)}")
 
-        return output_file, gr.DataFrame(label='Token Stats',
+        # Alpaca形式ファイルも返却
+        return output_file, alpaca_output_file, gr.DataFrame(label='Token Stats',
                          headers=["Source Text Token Count", "Expected Token Usage", "Token Used"],
                          datatype="str",
                          interactive=False,
@@ -313,7 +325,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
         )
 
         if_trainee_model = gr.Checkbox(label=_("Use Trainee Model"),
-                                        value=False,
+                                        value=True,
                                         interactive=True)
 
         with gr.Accordion(label=_("Model Config"), open=False):
@@ -463,13 +475,19 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                         [os.path.join(examples_dir, "txt_demo.txt")],
                         [os.path.join(examples_dir, "raw_demo.jsonl")],
                         [os.path.join(examples_dir, "chunked_demo.json")],
+                        [os.path.join(root_dir, "resources", "examples", "火焔猫燐-mini.txt")],
                     ],
                                 inputs=upload_file,
                                 label=_("Example Files"),
-                                examples_per_page=3)
+                                examples_per_page=10)
                 with gr.Column(scale=1):
                     output = gr.File(
-                        label="Output(See Github FAQ)",
+                        label="出力ファイル (標準形式)",
+                        file_count="single",
+                        interactive=False,
+                    )
+                    alpaca_output = gr.File(
+                        label="出力ファイル (Alpaca形式)",
                         file_count="single",
                         interactive=False,
                     )
@@ -558,7 +576,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                 api_key, chunk_size, rpm, tpm, quiz_samples, trainee_url, trainee_api_key, token_counter,
                 output_lang_dropdown  # 追加
             ],
-            outputs=[output, token_counter],
+            outputs=[output, alpaca_output, token_counter],
         )
 
 import argparse  # 追加

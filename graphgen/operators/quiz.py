@@ -47,7 +47,7 @@ async def quiz(
                 return  {des: [(new_description, gt)]}
 
             except Exception as e: # pylint: disable=broad-except
-                logger.error("Error when quizzing description %s: %s", des, e)
+                logger.error("Error when quizzing description {}: {}", des, e)
                 return None
 
 

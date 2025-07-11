@@ -31,7 +31,7 @@ class RPM:
                 _next = next_minute.timestamp()
                 sleep_time = abs(_next - current)
                 if not silent:
-                    logger.info('RPM sleep %s', sleep_time)
+                    logger.info('RPM sleep {}', sleep_time)
                 await asyncio.sleep(sleep_time)
 
                 self.record = {
@@ -76,7 +76,7 @@ class TPM:
                 second=0, microsecond=0) + timedelta(minutes=1)
             _next = next_minute.timestamp()
             sleep_time = abs(_next - current)
-            logger.info('TPM sleep %s', sleep_time)
+            logger.info('TPM sleep {}', sleep_time)
             await asyncio.sleep(sleep_time)
 
             self.record = {
