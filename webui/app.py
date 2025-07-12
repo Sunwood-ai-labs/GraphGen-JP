@@ -379,7 +379,7 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                                value="aggregated",
                                interactive=True)
             quiz_samples = gr.Number(label="Quiz Samples",
-                                     value=2,
+                                     value=6,
                                      minimum=1,
                                      interactive=True,
                                      visible=if_trainee_model.value is True)
@@ -445,8 +445,8 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                     rpm = gr.Slider(
                         label="RPM",
                         minimum=10,
-                        maximum=100000,
-                        value=10000,
+                        maximum=10000000,
+                        value=1000000,
                         step=100,
                         interactive=True,
                         visible=True)
@@ -454,12 +454,11 @@ with (gr.Blocks(title="GraphGen Demo", theme=gr.themes.Glass(),
                     tpm = gr.Slider(
                         label="TPM",
                         minimum=5000,
-                        maximum=5000000,
-                        value=500000,
+                        maximum=500000000,
+                        value=50000000,
                         step=1000,
                         interactive=True,
                         visible=True)
-
 
         with gr.Blocks():
             with gr.Row(equal_height=True):
