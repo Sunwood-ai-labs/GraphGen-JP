@@ -183,7 +183,7 @@ async def traverse_graph_by_edge(
             _process_edges: list,
             force_language: str = None
     ) -> str:
-        logger.debug(f"開始: _process_nodes_and_edges nodes={len(_process_nodes)} edges={len(_process_edges)} force_language={force_language}")
+        logger.info(f"開始: _process_nodes_and_edges nodes={len(_process_nodes)} edges={len(_process_edges)} force_language={force_language}")
         prompt = await _construct_rephrasing_prompt(
             _process_nodes,
             _process_edges,
@@ -191,9 +191,9 @@ async def traverse_graph_by_edge(
             add_context = False,
             force_language=force_language
         )
-        logger.debug(f"生成プロンプト: {prompt[:200]}...")  # 長い場合は先頭だけ
+        logger.info(f"生成プロンプト: {prompt[:200]}...")  # 長い場合は先頭だけ
         context = await llm_client.generate_answer(prompt)
-        logger.debug(f"生成context: {context[:200]}...")
+        logger.info(f"生成context: {context[:200]}...")
 
         # post-process the context
         if context.startswith("Rephrased Text:"):
@@ -221,7 +221,7 @@ async def traverse_graph_by_edge(
                 pre_length = sum(node['length'] for node in _process_batch[0]) \
                              + sum(edge[2]['length'] for edge in _process_batch[1])
 
-                logger.debug(f"生成context: {context[:200]}... 言語: {language} pre_length: {pre_length}")
+                logger.info(f"生成context: {context[:200]}... 言語: {language} pre_length: {pre_length}")
 
                 if question_type == "single":
                     question = await llm_client.generate_answer(
@@ -229,7 +229,7 @@ async def traverse_graph_by_edge(
                             answer=context
                         )
                     )
-                    logger.debug(f"生成question: {question[:200]}...")
+                    logger.info(f"生成question: {question[:200]}...")
 
                     if question.startswith("Question:"):
                         question = question[len("Question:"):].strip()
@@ -238,10 +238,10 @@ async def traverse_graph_by_edge(
                     elif question.startswith("質問："):
                         question = question[len("質問："):].strip()
 
-                    logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
-                    logger.info("Pre-length: %s", pre_length)
-                    logger.info("Question: %s", question)
-                    logger.info("Answer: %s", context)
+                    logger.info("{} nodes and {} edges processed", len(_process_batch[0]), len(_process_batch[1]))
+                    logger.info("Pre-length: {}", pre_length)
+                    logger.info("Question: {}", question)
+                    logger.info("Answer: {}", context)
 
                     return {
                         compute_content_hash(context): {
@@ -256,7 +256,7 @@ async def traverse_graph_by_edge(
                         doc=context
                     )
                 )
-                logger.debug(f"生成multi content: {content[:200]}...")
+                logger.info(f"生成multi content: {content[:200]}...")
                 qas = _post_process_synthetic_data(content)
 
                 if len(qas) == 0:
@@ -264,11 +264,11 @@ async def traverse_graph_by_edge(
                     return {}
 
                 final_results = {}
-                logger.info("%d nodes and %d edges processed", len(_process_batch[0]), len(_process_batch[1]))
-                logger.info("Pre-length: %s", pre_length)
+                logger.info("{} nodes and {} edges processed", len(_process_batch[0]), len(_process_batch[1]))
+                logger.info("Pre-length: {}", pre_length)
                 for qa in qas:
-                    logger.info("Question: %s", qa['question'])
-                    logger.info("Answer: %s", qa['answer'])
+                    logger.info("Question: {}", qa['question'])
+                    logger.info("Answer: {}", qa['answer'])
                     final_results[compute_content_hash(qa['question'])] = {
                         "question": qa['question'],
                         "answer": qa['answer'],
@@ -302,7 +302,7 @@ async def traverse_graph_by_edge(
             if progress_bar is not None and len(results) == len(processing_batches):
                 progress_bar(1, desc="[4/4]Generating QAs")
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while generating QA: %s", e)
+            logger.error("Error occurred while generating QA: {}", e)
 
     return results
 
@@ -364,8 +364,8 @@ async def traverse_graph_atomically(
                 question = question.strip("\"")
                 answer = answer.strip("\"")
 
-                logger.info("Question: %s", question)
-                logger.info("Answer: %s", answer)
+                logger.info("Question: {}", question)
+                logger.info("Answer: {}", answer)
                 return {
                     compute_content_hash(question): {
                         "question": question,
@@ -374,7 +374,7 @@ async def traverse_graph_atomically(
                     }
                 }
             except Exception as e: # pylint: disable=broad-except
-                logger.error("Error occurred while generating question: %s", e)
+                logger.error("Error occurred while generating question: {}", e)
                 return {}
 
     results = {}
@@ -411,7 +411,7 @@ async def traverse_graph_atomically(
             if progress_bar is not None and len(results) == len(tasks):
                 progress_bar(1, desc="[4/4]Generating QAs")
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while generating QA: %s", e)
+            logger.error("Error occurred while generating QA: {}", e)
     return results
 
 async def traverse_graph_for_multi_hop(

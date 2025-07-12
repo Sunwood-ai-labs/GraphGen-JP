@@ -13,7 +13,8 @@ async def _handle_kg_summary(
     description: str,
     llm_client: TopkTokenModel,
     tokenizer_instance: Tokenizer,
-    max_summary_tokens: int = 200
+    max_summary_tokens: int = 200,
+    force_language: str = None
 ) -> str:
     """
     处理实体或关系的描述信息
@@ -25,11 +26,17 @@ async def _handle_kg_summary(
     :param max_summary_tokens
     :return: new description
     """
-    language = detect_main_language(description)
-    if language == "en":
-        language = "English"
+    # 言語判定ロジック: force_language優先、なければ自動判定
+    if force_language:
+        language = force_language
     else:
-        language = "Chinese"
+        lang_code = detect_main_language(description)
+        if lang_code == "zh":
+            language = "Chinese"
+        elif lang_code == "ja":
+            language = "Japanese"
+        else:
+            language = "English"
     KG_EXTRACTION_PROMPT["FORMAT"]["language"] = language
 
     tokens = tokenizer_instance.encode_string(description)
@@ -43,7 +50,7 @@ async def _handle_kg_summary(
         **KG_SUMMARIZATION_PROMPT["FORMAT"]
     )
     new_description = await llm_client.generate_answer(prompt)
-    logger.info("Entity or relation %s summary: %s", entity_or_relation_name, new_description)
+    logger.info("Entity or relation {} summary: {}", entity_or_relation_name, new_description)
     return new_description
 
 
@@ -52,7 +59,8 @@ async def merge_nodes(
     kg_instance: BaseGraphStorage,
     llm_client: TopkTokenModel,
     tokenizer_instance: Tokenizer,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ):
     """
     Merge nodes
@@ -126,7 +134,7 @@ async def merge_nodes(
         try:
             entities_data.append(await result)
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while inserting entities into storage: %s", e)
+            logger.error("Error occurred while inserting entities into storage: {}", e)
 
 
 async def merge_edges(
@@ -134,7 +142,8 @@ async def merge_edges(
     kg_instance: BaseGraphStorage,
     llm_client: TopkTokenModel,
     tokenizer_instance: Tokenizer,
-    max_concurrent: int = 1000
+    max_concurrent: int = 1000,
+    force_language: str = None
 ):
     """
     Merge edges
@@ -212,4 +221,4 @@ async def merge_edges(
         try:
             relationships_data.append(await result)
         except Exception as e: # pylint: disable=broad-except
-            logger.error("Error occurred while inserting relationships into storage: %s", e)
+            logger.error("Error occurred while inserting relationships into storage: {}", e)

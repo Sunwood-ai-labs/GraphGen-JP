@@ -13,8 +13,24 @@ from tenacity import (
 from graphgen.models.llm.topk_token_model import TopkTokenModel, Token
 from graphgen.models.llm.tokenizer import Tokenizer
 from graphgen.models.llm.limitter import RPM, TPM
+from graphgen.utils import logger
 
 def get_top_response_tokens(response: openai.ChatCompletion) -> List[Token]:
+    # APIからの応答が正常かチェック
+    if (
+        not response.choices
+        or not hasattr(response.choices[0], "logprobs")
+        or response.choices[0].logprobs is None
+        or not hasattr(response.choices[0].logprobs, "content")
+        or response.choices[0].logprobs.content is None
+    ):
+        logger.warning(
+            "LLM response is missing expected logprobs. Finish reason: %s. Response: %s",
+            response.choices[0].finish_reason if response.choices else "N/A",
+            response
+        )
+        return []  # エラーの代わりに空のリストを返す
+
     token_logprobs = response.choices[0].logprobs.content
     tokens = []
     for token_prob in token_logprobs:

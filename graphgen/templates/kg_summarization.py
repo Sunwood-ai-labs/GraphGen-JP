@@ -29,12 +29,29 @@ TEMPLATE_ZH = """你是一个NLP专家，负责根据以下提供的数据生成
 """
 
 
+TEMPLATE_JA = """あなたはNLPの専門家として、以下のデータに基づき包括的な要約を作成してください。
+1つのエンティティまたは関係と、それに関連する複数の説明が与えられます。
+すべての説明を統合し、矛盾があれば解消した上で、第三者視点で簡潔かつ明確な要約文を作成してください。
+エンティティ名も必ず含めてください。
+出力言語は{language}とします。
+
+#######
+-データ-
+エンティティ: {entity_name}
+説明リスト: {description_list}
+#######
+出力:
+"""
+
 KG_SUMMARIZATION_PROMPT = {
     "Chinese": {
         "TEMPLATE": TEMPLATE_ZH
     },
     "English": {
         "TEMPLATE": TEMPLATE_EN
+    },
+    "Japanese": {
+        "TEMPLATE": TEMPLATE_JA
     },
     "FORMAT": {
         "language": "English",

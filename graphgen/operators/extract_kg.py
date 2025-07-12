@@ -21,7 +21,8 @@ async def extract_kg(
         tokenizer_instance: Tokenizer,
         chunks: List[Chunk],
         progress_bar: gr.Progress = None,
-        max_concurrent: int = 1000
+        max_concurrent: int = 1,
+        force_language: str = None
 ):
     """
     :param llm_client: Synthesizer LLM model to extract entities and relationships
@@ -35,22 +36,44 @@ async def extract_kg(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def _process_single_content(chunk: Chunk, max_loop: int = 3):
+    async def _process_single_content(chunk: Chunk, max_loop: int = 6):
         async with semaphore:
             chunk_id = chunk.id
             content = chunk.content
-            if detect_if_chinese(content):
-                language = "Chinese"
+
+            # 言語判定ロジック: force_language優先、なければ自動判定
+            if force_language:
+                language = force_language
             else:
-                language = "English"
+                from graphgen.utils import detect_main_language
+                lang_code = detect_main_language(content)
+                if lang_code == "zh":
+                    language = "Chinese"
+                elif lang_code == "ja":
+                    language = "Japanese"
+                else:
+                    language = "English"
             KG_EXTRACTION_PROMPT["FORMAT"]["language"] = language
 
+            # ===== エンティティタイプの定義（言語ごとに変更可能） =====
+            if language == "Japanese":
+                entity_types = ["人物", "組織", "場所", "イベント", "製品", "技術", "コンセプト"]
+            elif language == "Chinese":
+                entity_types = ["人物", "组织", "地点", "事件", "产品", "技术", "概念"]
+            else:  # English
+                entity_types = ["PERSON", "ORGANIZATION", "LOCATION", "EVENT", "PRODUCT", "TECHNOLOGY", "CONCEPT"]
+
+            # ===== プロンプト生成時に entity_types を渡す =====
             hint_prompt = KG_EXTRACTION_PROMPT[language]["TEMPLATE"].format(
-                **KG_EXTRACTION_PROMPT["FORMAT"], input_text=content
+                entity_types=", ".join(entity_types),
+                **KG_EXTRACTION_PROMPT["FORMAT"],
+                input_text=content
             )
 
             final_result = await llm_client.generate_answer(hint_prompt)
-            logger.info('First result: %s', final_result)
+            # LLMの応答に含まれる全角クォーテーションを半角に正規化
+            final_result = final_result.replace('“', '"').replace('”', '"')
+            logger.info('First result (normalized): {}', final_result)
 
             history = pack_history_conversations(hint_prompt, final_result)
             for loop_index in range(max_loop):
@@ -66,7 +89,9 @@ async def extract_kg(
                     text=KG_EXTRACTION_PROMPT[language]["CONTINUE"],
                     history=history
                 )
-                logger.info('Loop %s glean: %s', loop_index, glean_result)
+                # ループ内で得られた追加結果も正規化
+                glean_result = glean_result.replace('“', '"').replace('”', '"')
+                logger.info('Loop {} glean (normalized): {}', loop_index, glean_result)
 
                 history += pack_history_conversations(KG_EXTRACTION_PROMPT[language]["CONTINUE"], glean_result)
                 final_result += glean_result
@@ -126,7 +151,7 @@ async def extract_kg(
         for k, v in e.items():
             edges[tuple(sorted(k))].extend(v)
 
-    await merge_nodes(nodes, kg_instance, llm_client, tokenizer_instance)
-    await merge_edges(edges, kg_instance, llm_client, tokenizer_instance)
+    await merge_nodes(nodes, kg_instance, llm_client, tokenizer_instance, force_language=force_language)
+    await merge_edges(edges, kg_instance, llm_client, tokenizer_instance, force_language=force_language)
 
     return kg_instance

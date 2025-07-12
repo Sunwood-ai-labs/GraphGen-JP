@@ -12,7 +12,8 @@ async def quiz(
         graph_storage: NetworkXStorage,
         rephrase_storage: JsonKVStorage,
         max_samples: int = 1,
-        max_concurrent: int = 1000) -> JsonKVStorage:
+        max_concurrent: int = 1000,
+        force_language: str = None) -> JsonKVStorage:
     """
     Get all edges and quiz them
 
@@ -21,6 +22,7 @@ async def quiz(
     :param rephrase_storage: rephrase storage instance
     :param max_samples: max samples for each edge
     :param max_concurrent: max concurrent
+    :param force_language: The language to use for the prompt, specified from UI
     :return:
     """
 
@@ -45,7 +47,7 @@ async def quiz(
                 return  {des: [(new_description, gt)]}
 
             except Exception as e: # pylint: disable=broad-except
-                logger.error("Error when quizzing description %s: %s", des, e)
+                logger.error("Error when quizzing description {}: {}", des, e)
                 return None
 
 
@@ -58,7 +60,18 @@ async def quiz(
         edge_data = edge[2]
 
         description = edge_data["description"]
-        language = "English" if detect_main_language(description) == "en" else "Chinese"
+
+        # 言語判定ロジック: force_language優先、なければ自動判定
+        if force_language:
+            language = force_language
+        else:
+            lang_code = detect_main_language(description)
+            if lang_code == "zh":
+                language = "Chinese"
+            elif lang_code == "ja":
+                language = "Japanese"
+            else:
+                language = "English"
 
         results[description] = [(description, 'yes')]
 
@@ -76,7 +89,17 @@ async def quiz(
     for node in nodes:
         node_data = node[1]
         description = node_data["description"]
-        language = "English" if detect_main_language(description) == "en" else "Chinese"
+        # 言語判定ロジック: force_language優先、なければ自動判定
+        if force_language:
+            language = force_language
+        else:
+            lang_code = detect_main_language(description)
+            if lang_code == "zh":
+                language = "Chinese"
+            elif lang_code == "ja":
+                language = "Japanese"
+            else:
+                language = "English"
 
         results[description] = [(description, 'yes')]
 

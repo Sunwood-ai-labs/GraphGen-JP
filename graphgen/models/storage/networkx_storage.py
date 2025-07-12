@@ -17,7 +17,7 @@ class NetworkXStorage(BaseGraphStorage):
 
     @staticmethod
     def write_nx_graph(graph: nx.Graph, file_name):
-        logger.info("Writing graph with %d nodes, %d edges", graph.number_of_nodes(), graph.number_of_edges())
+        logger.info("Writing graph with {} nodes, {} edges", graph.number_of_nodes(), graph.number_of_edges())
         nx.write_graphml(graph, file_name)
 
     @staticmethod
@@ -77,7 +77,7 @@ class NetworkXStorage(BaseGraphStorage):
         preloaded_graph = NetworkXStorage.load_nx_graph(self._graphml_xml_file)
         if preloaded_graph is not None:
             logger.info(
-                "Loaded graph from %s with %d nodes, %d edges", self._graphml_xml_file,
+                "Loaded graph from {} with {} nodes, {} edges", self._graphml_xml_file,
                 preloaded_graph.number_of_nodes(), preloaded_graph.number_of_edges()
             )
         self._graph = preloaded_graph or nx.Graph()
@@ -126,7 +126,7 @@ class NetworkXStorage(BaseGraphStorage):
         if self._graph.has_node(node_id):
             self._graph.nodes[node_id].update(node_data)
         else:
-            logger.warning("Node %s not found in the graph for update.", node_id)
+            logger.warning("Node {} not found in the graph for update.", node_id)
 
     async def upsert_edge(
         self, source_node_id: str, target_node_id: str, edge_data: dict[str, str]
@@ -137,7 +137,7 @@ class NetworkXStorage(BaseGraphStorage):
         if self._graph.has_edge(source_node_id, target_node_id):
             self._graph.edges[(source_node_id, target_node_id)].update(edge_data)
         else:
-            logger.warning("Edge %s -> %s not found in the graph for update.", source_node_id, target_node_id)
+            logger.warning("Edge {} -> {} not found in the graph for update.", source_node_id, target_node_id)
 
     async def delete_node(self, node_id: str):
         """
@@ -147,13 +147,13 @@ class NetworkXStorage(BaseGraphStorage):
         """
         if self._graph.has_node(node_id):
             self._graph.remove_node(node_id)
-            logger.info("Node %s deleted from the graph.", node_id)
+            logger.info("Node {} deleted from the graph.", node_id)
         else:
-            logger.warning("Node %s not found in the graph for deletion.", node_id)
+            logger.warning("Node {} not found in the graph for deletion.", node_id)
 
     async def clear(self):
         """
         Clear the graph by removing all nodes and edges.
         """
         self._graph.clear()
-        logger.info("Graph %s cleared.", self.namespace)
+        logger.info("Graph {} cleared.", self.namespace)

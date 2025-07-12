@@ -29,47 +29,89 @@ async def judge_statement( # pylint: disable=too-many-statements
         edge: tuple,
     ):
         async with semaphore:
-            source_id = edge[0]
-            target_id = edge[1]
-            edge_data = edge[2]
+            source_id, target_id, edge_data = edge[0], edge[1], edge[2]
+
+            # ▼▼▼▼▼ ここからが修正箇所 ▼▼▼▼▼
+            logger.info("--- Start Judging Relation: {} -> {} ---", source_id, target_id)
 
             if (not re_judge) and "loss" in edge_data and edge_data["loss"] is not None:
-                logger.info("Edge %s -> %s already judged, loss: %s, skip", source_id, target_id, edge_data["loss"])
+                logger.info("Edge {} -> {} already judged, loss: {}, skip", source_id, target_id, edge_data["loss"])
                 return source_id, target_id, edge_data
 
-            description = edge_data["description"]
+            description = edge_data.get("description", "")
+            logger.info("  - Original Description: '{}'", description)
+            if not description:
+                logger.warning("  - Description is empty for relation {} -> {}. Skipping.", source_id, target_id)
+                edge_data["loss"] = -math.log(0.1)
+                await graph_storage.update_edge(source_id, target_id, edge_data)
+                return source_id, target_id, edge_data
 
             try:
                 descriptions = await rephrase_storage.get_by_id(description)
-                assert descriptions is not None
+                logger.info("  - Fetched rephrased data from storage: {}", descriptions)
+
+                if not descriptions:
+                    logger.warning(
+                        "  - No rephrased data found for relation '{}' -> '{}'. Using default loss.",
+                        source_id, target_id
+                    )
+                    edge_data["loss"] = -math.log(0.1)
+                    await graph_storage.update_edge(source_id, target_id, edge_data)
+                    return source_id, target_id, edge_data
 
                 judgements = []
                 gts = [gt for _, gt in descriptions]
-                for description, gt in descriptions:
-                    judgement = await trainee_llm_client.generate_topk_per_token(
-                        STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=description)
-                    )
-                    judgements.append(judgement[0].top_candidates)
+                for i, (desc_text, gt) in enumerate(descriptions):
+                    prompt = STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=desc_text)
+                    logger.info("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
 
+                    judgement_response = await trainee_llm_client.generate_topk_per_token(prompt)
+                    logger.info("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
+
+                    if not judgement_response:
+                        logger.warning(
+                            "LLM returned no valid tokens for relation '{}' -> '{}'. Prompt: '{}'. Skipping this rephrase.",
+                            source_id, target_id, prompt
+                        )
+                        continue  # この言い換え文の評価をスキップして次のループへ
+
+                    if not judgement_response[0].top_candidates:
+                        logger.warning(
+                            "LLM response for relation '{}' -> '{}' has no top_candidates. Skipping this rephrase.",
+                            source_id, target_id
+                        )
+                        continue  # この言い換え文の評価をスキップ
+
+                    judgements.append(judgement_response[0].top_candidates)
+
+                logger.info("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
                 loss = yes_no_loss_entropy(judgements, gts)
 
-                logger.info("Edge %s -> %s description: %s loss: %s", source_id, target_id, description, loss)
+                logger.info("  - SUCCESS: Judged relation {} -> {} | Loss: {}", source_id, target_id, loss)
 
                 edge_data["loss"] = loss
-            except Exception as e: # pylint: disable=broad-except
-                logger.error("Error in judging relation %s -> %s: %s", source_id, target_id, e)
-                logger.info("Use default loss 0.1")
+            except Exception as e:
+                logger.error(
+                    "  - FAILURE: Error judging relation {} -> {}. Error Type: {}. Error: {}",
+                    source_id, target_id, type(e).__name__, e, exc_info=True
+                )
+                logger.info("  - Assigning default loss 0.1")
                 edge_data["loss"] = -math.log(0.1)
+            
+            logger.info("--- End Judging Relation: {} -> {} ---", source_id, target_id)
+            # ▲▲▲▲▲ ここまでが修正箇所 ▲▲▲▲▲
 
             await graph_storage.update_edge(source_id, target_id, edge_data)
             return source_id, target_id, edge_data
 
     edges = await graph_storage.get_all_edges()
-
+    
+    # 実行前にリスト化して tqdm で正しく進捗表示
+    edge_list = list(edges)
     results = []
     for result in tqdm_async(
-            asyncio.as_completed([_judge_single_relation(edge) for edge in edges]),
-            total=len(edges),
+            asyncio.as_completed([_judge_single_relation(edge) for edge in edge_list]),
+            total=len(edge_list),
             desc="Judging relations"
     ):
         results.append(await result)
@@ -78,51 +120,95 @@ async def judge_statement( # pylint: disable=too-many-statements
         node: tuple,
     ):
         async with semaphore:
-            node_id = node[0]
-            node_data = node[1]
+            node_id, node_data = node[0], node[1]
+            
+            # ▼▼▼▼▼ ここからが修正箇所 ▼▼▼▼▼
+            logger.info("--- Start Judging Entity: {} ---", node_id)
 
             if (not re_judge) and "loss" in node_data and node_data["loss"] is not None:
-                logger.info("Node %s already judged, loss: %s, skip", node_id, node_data["loss"])
+                logger.info("Node {} already judged, loss: {}, skip", node_id, node_data["loss"])
                 return node_id, node_data
 
-            description = node_data["description"]
+            description = node_data.get("description", "")
+            logger.info("  - Original Description: '{}'", description)
+            if not description:
+                logger.warning("  - Description is empty for entity {}. Skipping.", node_id)
+                node_data["loss"] = -math.log(0.1)
+                await graph_storage.update_node(node_id, node_data)
+                return node_id, node_data
 
             try:
                 descriptions = await rephrase_storage.get_by_id(description)
-                assert descriptions is not None
+                logger.info("  - Fetched rephrased data from storage: {}", descriptions)
+
+                if not descriptions:
+                    logger.warning(
+                        "  - No rephrased data found for entity '{}'. Using default loss.",
+                        node_id
+                    )
+                    node_data["loss"] = -math.log(0.1)
+                    await graph_storage.update_node(node_id, node_data)
+                    return node_id, node_data
 
                 judgements = []
                 gts = [gt for _, gt in descriptions]
-                for description, gt in descriptions:
-                    judgement = await trainee_llm_client.generate_topk_per_token(
-                        STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=description)
-                    )
-                    judgements.append(judgement[0].top_candidates)
+                for i, (desc_text, gt) in enumerate(descriptions):
+                    prompt = STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=desc_text)
+                    logger.info("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
 
+                    judgement_response = await trainee_llm_client.generate_topk_per_token(prompt)
+                    logger.info("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
+                    
+                    if not judgement_response:
+                        logger.warning(
+                            "LLM returned no valid tokens for entity '{}'. Prompt: '{}'. Skipping this rephrase.",
+                            node_id, prompt
+                        )
+                        continue
+
+                    if not judgement_response[0].top_candidates:
+                        logger.warning(
+                            "LLM response for entity '{}' has no top_candidates. Skipping this rephrase.",
+                            node_id
+                        )
+                        continue
+
+                    judgements.append(judgement_response[0].top_candidates)
+
+                logger.info("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
                 loss = yes_no_loss_entropy(judgements, gts)
 
-                logger.info("Node %s description: %s loss: %s", node_id, description, loss)
+                logger.info("  - SUCCESS: Judged entity {} | Loss: {}", node_id, loss)
 
                 node_data["loss"] = loss
-            except Exception as e: # pylint: disable=broad-except
-                logger.error("Error in judging entity %s: %s", node_id, e)
-                logger.info("Use default loss 0.1")
+            except Exception as e:
+                logger.error(
+                    "  - FAILURE: Error judging entity {}. Error Type: {}. Error: {}",
+                    node_id, type(e).__name__, e, exc_info=True
+                )
+                logger.info("  - Assigning default loss 0.1")
                 node_data["loss"] = -math.log(0.1)
+            
+            logger.info("--- End Judging Entity: {} ---", node_id)
+            # ▲▲▲▲▲ ここまでが修正箇所 ▲▲▲▲▲
 
             await graph_storage.update_node(node_id, node_data)
             return node_id, node_data
 
     nodes = await graph_storage.get_all_nodes()
-
+    
+    # 実行前にリスト化して tqdm で正しく進捗表示
+    node_list = list(nodes)
     results = []
     for result in tqdm_async(
-            asyncio.as_completed([_judge_single_entity(node) for node in nodes]),
-            total=len(nodes),
+            asyncio.as_completed([_judge_single_entity(node) for node in node_list]),
+            total=len(node_list),
             desc="Judging entities"
     ):
         results.append(await result)
 
     return graph_storage
+
 
 async def skip_judge_statement(
         graph_storage: NetworkXStorage,
@@ -140,12 +226,11 @@ async def skip_judge_statement(
         edge: tuple,
     ):
         async with semaphore:
-            source_id = edge[0]
-            target_id = edge[1]
-            edge_data = edge[2]
+            source_id, target_id, edge_data = edge[0], edge[1], edge[2]
 
             if "loss" in edge_data and edge_data["loss"] is not None:
-                logger.info("Edge %s -> %s already judged, loss: %s, skip", source_id, target_id, edge_data["loss"])
+                # ログフォーマットを修正
+                logger.info("Edge {} -> {} already judged, loss: {}, skip", source_id, target_id, edge_data["loss"])
                 return source_id, target_id, edge_data
 
             edge_data["loss"] = -math.log(0.1)
@@ -153,10 +238,11 @@ async def skip_judge_statement(
             return source_id, target_id, edge_data
 
     edges = await graph_storage.get_all_edges()
+    edge_list = list(edges)
     results = []
     for result in tqdm_async(
-            asyncio.as_completed([_skip_single_relation(edge) for edge in edges]),
-            total=len(edges),
+            asyncio.as_completed([_skip_single_relation(edge) for edge in edge_list]),
+            total=len(edge_list),
             desc="Skipping judgement of relations"
     ):
         results.append(await result)
@@ -165,11 +251,11 @@ async def skip_judge_statement(
         node: tuple,
     ):
         async with semaphore:
-            node_id = node[0]
-            node_data = node[1]
+            node_id, node_data = node[0], node[1]
 
             if "loss" in node_data and node_data["loss"] is not None:
-                logger.info("Node %s already judged, loss: %s, skip", node_id, node_data["loss"])
+                # ログフォーマットを修正
+                logger.info("Node {} already judged, loss: {}, skip", node_id, node_data["loss"])
                 return node_id, node_data
 
             node_data["loss"] = -math.log(0.1)
@@ -177,10 +263,11 @@ async def skip_judge_statement(
             return node_id, node_data
 
     nodes = await graph_storage.get_all_nodes()
+    node_list = list(nodes)
     results = []
     for result in tqdm_async(
-            asyncio.as_completed([_skip_single_entity(node) for node in nodes]),
-            total=len(nodes),
+            asyncio.as_completed([_skip_single_entity(node) for node in node_list]),
+            total=len(node_list),
             desc="Skipping judgement of entities"
     ):
         results.append(await result)
