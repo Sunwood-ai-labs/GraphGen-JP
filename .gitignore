@@ -179,3 +179,4 @@ cache
 .gradio
 scripts/sample/orin-mini-alpaca.jsonl
 scripts/sample/orin-mini.jsonl
+scripts/wikipedia-search/wikipedia_search/
