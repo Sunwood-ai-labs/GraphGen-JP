@@ -183,7 +183,7 @@ async def traverse_graph_by_edge(
             _process_edges: list,
             force_language: str = None
     ) -> str:
-        logger.debug(f"開始: _process_nodes_and_edges nodes={len(_process_nodes)} edges={len(_process_edges)} force_language={force_language}")
+        logger.info(f"開始: _process_nodes_and_edges nodes={len(_process_nodes)} edges={len(_process_edges)} force_language={force_language}")
         prompt = await _construct_rephrasing_prompt(
             _process_nodes,
             _process_edges,
@@ -191,9 +191,9 @@ async def traverse_graph_by_edge(
             add_context = False,
             force_language=force_language
         )
-        logger.debug(f"生成プロンプト: {prompt[:200]}...")  # 長い場合は先頭だけ
+        logger.info(f"生成プロンプト: {prompt[:200]}...")  # 長い場合は先頭だけ
         context = await llm_client.generate_answer(prompt)
-        logger.debug(f"生成context: {context[:200]}...")
+        logger.info(f"生成context: {context[:200]}...")
 
         # post-process the context
         if context.startswith("Rephrased Text:"):
@@ -221,7 +221,7 @@ async def traverse_graph_by_edge(
                 pre_length = sum(node['length'] for node in _process_batch[0]) \
                              + sum(edge[2]['length'] for edge in _process_batch[1])
 
-                logger.debug(f"生成context: {context[:200]}... 言語: {language} pre_length: {pre_length}")
+                logger.info(f"生成context: {context[:200]}... 言語: {language} pre_length: {pre_length}")
 
                 if question_type == "single":
                     question = await llm_client.generate_answer(
@@ -229,7 +229,7 @@ async def traverse_graph_by_edge(
                             answer=context
                         )
                     )
-                    logger.debug(f"生成question: {question[:200]}...")
+                    logger.info(f"生成question: {question[:200]}...")
 
                     if question.startswith("Question:"):
                         question = question[len("Question:"):].strip()
@@ -256,7 +256,7 @@ async def traverse_graph_by_edge(
                         doc=context
                     )
                 )
-                logger.debug(f"生成multi content: {content[:200]}...")
+                logger.info(f"生成multi content: {content[:200]}...")
                 qas = _post_process_synthetic_data(content)
 
                 if len(qas) == 0:

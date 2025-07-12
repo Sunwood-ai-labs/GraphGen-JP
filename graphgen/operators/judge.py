@@ -32,14 +32,14 @@ async def judge_statement( # pylint: disable=too-many-statements
             source_id, target_id, edge_data = edge[0], edge[1], edge[2]
 
             # ▼▼▼▼▼ ここからが修正箇所 ▼▼▼▼▼
-            logger.debug("--- Start Judging Relation: {} -> {} ---", source_id, target_id)
+            logger.info("--- Start Judging Relation: {} -> {} ---", source_id, target_id)
 
             if (not re_judge) and "loss" in edge_data and edge_data["loss"] is not None:
                 logger.info("Edge {} -> {} already judged, loss: {}, skip", source_id, target_id, edge_data["loss"])
                 return source_id, target_id, edge_data
 
             description = edge_data.get("description", "")
-            logger.debug("  - Original Description: '{}'", description)
+            logger.info("  - Original Description: '{}'", description)
             if not description:
                 logger.warning("  - Description is empty for relation {} -> {}. Skipping.", source_id, target_id)
                 edge_data["loss"] = -math.log(0.1)
@@ -48,7 +48,7 @@ async def judge_statement( # pylint: disable=too-many-statements
 
             try:
                 descriptions = await rephrase_storage.get_by_id(description)
-                logger.debug("  - Fetched rephrased data from storage: {}", descriptions)
+                logger.info("  - Fetched rephrased data from storage: {}", descriptions)
 
                 if not descriptions:
                     logger.warning(
@@ -63,10 +63,10 @@ async def judge_statement( # pylint: disable=too-many-statements
                 gts = [gt for _, gt in descriptions]
                 for i, (desc_text, gt) in enumerate(descriptions):
                     prompt = STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=desc_text)
-                    logger.debug("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
+                    logger.info("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
 
                     judgement_response = await trainee_llm_client.generate_topk_per_token(prompt)
-                    logger.debug("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
+                    logger.info("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
 
                     if not judgement_response:
                         logger.warning(
@@ -84,7 +84,7 @@ async def judge_statement( # pylint: disable=too-many-statements
 
                     judgements.append(judgement_response[0].top_candidates)
 
-                logger.debug("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
+                logger.info("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
                 loss = yes_no_loss_entropy(judgements, gts)
 
                 logger.info("  - SUCCESS: Judged relation {} -> {} | Loss: {}", source_id, target_id, loss)
@@ -98,7 +98,7 @@ async def judge_statement( # pylint: disable=too-many-statements
                 logger.info("  - Assigning default loss 0.1")
                 edge_data["loss"] = -math.log(0.1)
             
-            logger.debug("--- End Judging Relation: {} -> {} ---", source_id, target_id)
+            logger.info("--- End Judging Relation: {} -> {} ---", source_id, target_id)
             # ▲▲▲▲▲ ここまでが修正箇所 ▲▲▲▲▲
 
             await graph_storage.update_edge(source_id, target_id, edge_data)
@@ -123,14 +123,14 @@ async def judge_statement( # pylint: disable=too-many-statements
             node_id, node_data = node[0], node[1]
             
             # ▼▼▼▼▼ ここからが修正箇所 ▼▼▼▼▼
-            logger.debug("--- Start Judging Entity: {} ---", node_id)
+            logger.info("--- Start Judging Entity: {} ---", node_id)
 
             if (not re_judge) and "loss" in node_data and node_data["loss"] is not None:
                 logger.info("Node {} already judged, loss: {}, skip", node_id, node_data["loss"])
                 return node_id, node_data
 
             description = node_data.get("description", "")
-            logger.debug("  - Original Description: '{}'", description)
+            logger.info("  - Original Description: '{}'", description)
             if not description:
                 logger.warning("  - Description is empty for entity {}. Skipping.", node_id)
                 node_data["loss"] = -math.log(0.1)
@@ -139,7 +139,7 @@ async def judge_statement( # pylint: disable=too-many-statements
 
             try:
                 descriptions = await rephrase_storage.get_by_id(description)
-                logger.debug("  - Fetched rephrased data from storage: {}", descriptions)
+                logger.info("  - Fetched rephrased data from storage: {}", descriptions)
 
                 if not descriptions:
                     logger.warning(
@@ -154,10 +154,10 @@ async def judge_statement( # pylint: disable=too-many-statements
                 gts = [gt for _, gt in descriptions]
                 for i, (desc_text, gt) in enumerate(descriptions):
                     prompt = STATEMENT_JUDGEMENT_PROMPT['TEMPLATE'].format(statement=desc_text)
-                    logger.debug("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
+                    logger.info("  - [Loop {}] Prompt to LLM: '{}'", i, prompt)
 
                     judgement_response = await trainee_llm_client.generate_topk_per_token(prompt)
-                    logger.debug("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
+                    logger.info("  - [Loop {}] LLM Raw Response: {}", i, judgement_response)
                     
                     if not judgement_response:
                         logger.warning(
@@ -175,7 +175,7 @@ async def judge_statement( # pylint: disable=too-many-statements
 
                     judgements.append(judgement_response[0].top_candidates)
 
-                logger.debug("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
+                logger.info("  - Data for loss calculation: judgements={}, gts={}", judgements, gts)
                 loss = yes_no_loss_entropy(judgements, gts)
 
                 logger.info("  - SUCCESS: Judged entity {} | Loss: {}", node_id, loss)
@@ -189,7 +189,7 @@ async def judge_statement( # pylint: disable=too-many-statements
                 logger.info("  - Assigning default loss 0.1")
                 node_data["loss"] = -math.log(0.1)
             
-            logger.debug("--- End Judging Entity: {} ---", node_id)
+            logger.info("--- End Judging Entity: {} ---", node_id)
             # ▲▲▲▲▲ ここまでが修正箇所 ▲▲▲▲▲
 
             await graph_storage.update_node(node_id, node_data)
