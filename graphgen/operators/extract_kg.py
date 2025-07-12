@@ -36,7 +36,7 @@ async def extract_kg(
 
     semaphore = asyncio.Semaphore(max_concurrent)
 
-    async def _process_single_content(chunk: Chunk, max_loop: int = 3):
+    async def _process_single_content(chunk: Chunk, max_loop: int = 6):
         async with semaphore:
             chunk_id = chunk.id
             content = chunk.content
