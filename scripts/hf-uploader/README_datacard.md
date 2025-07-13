@@ -9,10 +9,10 @@ dataset_info:
     dtype: string
   splits:
   - name: train
-    num_bytes: 29784
-    num_examples: 40
-  download_size: 14892
-  dataset_size: 29784
+    num_bytes: 470571
+    num_examples: 638
+  download_size: 235285
+  dataset_size: 470571
 configs:
 - config_name: default
   data_files:
@@ -37,7 +37,7 @@ size_categories:
 
 ## Dataset Description
 
-This dataset contains 40 samples in instruction-following format, suitable for training conversational AI models.
+This dataset contains 638 samples in instruction-following format, suitable for training conversational AI models.
 
 ## Dataset Structure
 
@@ -49,10 +49,10 @@ This dataset contains 40 samples in instruction-following format, suitable for t
 
 ### Data Statistics
 
-- **Total samples**: 40
-- **instruction**: Avg length 82.2 chars, Max 150 chars, Min 30 chars
+- **Total samples**: 638
+- **instruction**: Avg length 83.4 chars, Max 518 chars, Min 16 chars
 - **input**: Avg length 0.0 chars, Max 0 chars, Min 0 chars
-- **output**: Avg length 118.0 chars, Max 258 chars, Min 29 chars
+- **output**: Avg length 114.4 chars, Max 352 chars, Min 17 chars
 
 ## Usage
 
@@ -66,16 +66,16 @@ dataset = load_dataset("username/Orin-Instruct-Alpaca-JP")
 
 ```json
 {
-  "instruction": "生成AIは、どのような分野の進化に大きな影響を与えていると言えますか？\n",
+  "instruction": "ゲーム「2023年 チュウニズム サン」に登場するリー・メイメイは、どのような役割を担っていますか？\n",
   "input": "",
-  "output": "生成AIは、テキスト生成モデルの進化を大きく後押しする役割を果たしています。\n"
+  "output": "ゲーム「2023年 チュウニズム サン」において、リー・メイメイは主要なキャラクターとして登場します。\n"
 }
 ```
 
 ## Source
 
 - **Original file**: `output-alpaca.jsonl`
-- **Generated on**: 2025-07-13 01:35:09
+- **Generated on**: 2025-07-13 21:15:52
 
 ## License
 

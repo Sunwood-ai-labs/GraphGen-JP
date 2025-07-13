@@ -1,72 +1,107 @@
-# 📝 hf-uploader 利用ガイド
+---
+dataset_info:
+  features:
+  - name: instruction
+    dtype: string
+  - name: input
+    dtype: string
+  - name: output
+    dtype: string
+  splits:
+  - name: train
+    num_bytes: 328957
+    num_examples: 446
+  - name: validation
+    num_bytes: 94409
+    num_examples: 128
+  - name: test
+    num_bytes: 47204
+    num_examples: 64
+  download_size: 235285
+  dataset_size: 470571
+configs:
+- config_name: default
+  data_files:
+  - split: train
+    path: data/train-*
+  - split: validation
+    path: data/validation-*
+  - split: test
+    path: data/test-*
+language:
+- ja
+tags:
+- instruction-following
+- conversational-ai
+- japanese
+license: unknown
+task_categories:
+- text-generation
+- question-answering
+pretty_name: Orin Instruct Alpaca Jp
+size_categories:
+- n<1K
+---
 
-## 🗒️ 概要
+# Orin-Instruct-Alpaca-JP
 
-本ディレクトリは、Hugging Face Hub へのデータセットアップロードを支援する Python スクリプト群を提供します。  
-主に `upload_dataset.py` を用いて、JSONL 形式のデータセットを Hugging Face Hub へ変換・アップロードし、README も自動生成できます。
+## Dataset Description
 
-## ⚙️ セットアップ方法
+This dataset contains 638 samples in instruction-following format, suitable for training conversational AI models.
 
-1. Python 3.10 以上を用意してください。
-2. 必要なパッケージは `pyproject.toml` で管理されています。  
-   `uv` または `poetry` でインストールできます。
+## Dataset Structure
 
-```bash
-# uv の場合
-uv pip install -r pyproject.toml
+### Data Fields
 
-# poetry の場合
-poetry install
+- **instruction**: Input instruction
+- **input**: Additional input context
+- **output**: Expected output/response
+
+### Data Splits
+
+- **train**: 446 samples
+- **validation**: 128 samples
+- **test**: 64 samples
+
+### Data Statistics
+
+- **Total samples**: 638
+- **instruction**: Avg length 83.4 chars, Max 518 chars, Min 16 chars
+- **input**: Avg length 0.0 chars, Max 0 chars, Min 0 chars
+- **output**: Avg length 114.4 chars, Max 352 chars, Min 17 chars
+
+## Usage
+
+```python
+from datasets import load_dataset
+
+dataset = load_dataset("username/Orin-Instruct-Alpaca-JP")
+
+# アクセス方法:
+train_data = dataset["train"]
+validation_data = dataset["validation"]
+test_data = dataset["test"]
 ```
 
-3. `.env` ファイルを作成し、Hugging Face のアクセストークン等を設定してください。
-
-例:
-```
-HF_TOKEN=your_huggingface_token
-```
-
-## 🚀 使い方
-
-### データセットのアップロード
-
-```bash
-python upload_dataset.py --input <input_jsonlファイル> --repo <HuggingFaceリポジトリ名> [--readme <README出力先>]
-```
-
-- `--input` : アップロードするJSONLファイルのパス
-- `--repo` : アップロード先のHugging Faceリポジトリ名（例: username/Orin-Instruct-Alpaca-JP）
-- `--readme` : （任意）READMEを自動生成する場合の出力先パス
-
-### 例
-
-```bash
-python upload_dataset.py --input output-alpaca.jsonl --repo username/Orin-Instruct-Alpaca-JP --readme README.md
-```
-
-## 📂 データセット説明
-
-- サンプル数: 40
-- 形式: instruction-following（指示応答型）
-- カラム:
-  - instruction: 入力指示
-  - input: 追加コンテキスト
-  - output: 期待される応答
-- instruction: 平均82.2文字（最大150、最小30）
-- input: 常に空
-- output: 平均118.0文字（最大258、最小29）
-
-#### サンプル
+## Data Sample
 
 ```json
 {
-  "instruction": "生成AIは、どのような分野の進化に大きな影響を与えていると言えますか？\n",
+  "instruction": "ゲーム「2023年 チュウニズム サン」に登場するリー・メイメイは、どのような役割を担っていますか？\n",
   "input": "",
-  "output": "生成AIは、テキスト生成モデルの進化を大きく後押しする役割を果たしています。\n"
+  "output": "ゲーム「2023年 チュウニズム サン」において、リー・メイメイは主要なキャラクターとして登場します。\n"
 }
 ```
 
-## 🪪 ライセンス・引用
+## Source
 
-- ライセンスは元データソースに準じます。詳細は元データをご確認ください。
-- 利用時は必ず元データの出典を明記してください。
+- **Original file**: `output-alpaca.jsonl`
+- **Generated on**: 2025-07-13 21:24:02
+
+## License
+
+Please refer to the original data source for licensing information.
+
+## Citation
+
+If you use this dataset, please cite the original source appropriately.
