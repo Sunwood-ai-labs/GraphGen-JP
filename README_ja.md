@@ -31,7 +31,8 @@ GraphGenは、ソーステキストから細粒度な知識グラフを構築し
 
 - 📝 [GraphGenとは？](#-graphgenとは)
 - 🚀 [クイックスタート](#-クイックスタート)
-- 📌 [最新情報](#-最新情報)
+- 📂 [サブディレクトリのドキュメント](#-サブディレクトリのドキュメント)
+-  [最新情報](#-最新情報)
 - 🏗️ [システム構成](#-システム構成)
 - 🍀 [謝辞](#-謝辞)
 - 📚 [引用](#-引用)
@@ -46,6 +47,18 @@ GraphGenは、ソーステキストから細粒度な知識グラフを構築し
 質問は[FAQ](https://github.com/open-sciencelab/GraphGen/issues/10)、[issue作成](https://github.com/open-sciencelab/GraphGen/issues)、または[WeChatグループ](https://cdn.vansin.top/internlm/dou.jpg)でどうぞ。
 
 ### 準備
+
+---
+
+## 📂 サブディレクトリのドキュメント
+
+- [scripts/hf-uploader/README.md](scripts/hf-uploader/README.md)
+  Hugging Faceデータセットアップローダ用ユーティリティの説明。
+- [scripts/visual/README.md](scripts/visual/README.md)
+  グラフ可視化スクリプトの説明。
+- [scripts/wikipedia-search/README.md](scripts/wikipedia-search/README.md)
+  Wikipedia検索ユーティリティの説明。
+
 
 1. [uv](https://docs.astral.sh/uv/reference/installer/)のインストール
 

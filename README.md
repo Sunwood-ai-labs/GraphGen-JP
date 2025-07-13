@@ -30,6 +30,7 @@ GraphGen: Enhancing Supervised Fine-Tuning for LLMs with Knowledge-Driven Synthe
 
 - 📝 [What is GraphGen?](#-what-is-graphgen)
 - 🚀 [Quick Start](#-quick-start)
+- 📂 [Subdirectory Documents](#-subdirectory-documents)
 - 📌 [Latest Updates](#-latest-updates)
 - 🏗️ [System Architecture](#-system-architecture)
 - 🍀 [Acknowledgements](#-acknowledgements)
@@ -57,6 +58,18 @@ Experience GraphGen through [Web](https://g-app-center-000704-6802-aerppvq.openx
 For any questions, please check [FAQ](https://github.com/open-sciencelab/GraphGen/issues/10), open new [issue](https://github.com/open-sciencelab/GraphGen/issues) or join our [wechat group](https://cdn.vansin.top/internlm/dou.jpg) and ask.
 
 ### Preparation
+
+---
+
+## 📂 Subdirectory Documents
+
+- [scripts/hf-uploader/README.md](scripts/hf-uploader/README.md)
+  Documentation for Hugging Face dataset uploader utility.
+- [scripts/visual/README.md](scripts/visual/README.md)
+  Documentation for graph visualization scripts.
+- [scripts/wikipedia-search/README.md](scripts/wikipedia-search/README.md)
+  Documentation for Wikipedia search utility.
+
 
 1. Install [uv](https://docs.astral.sh/uv/reference/installer/)
 
